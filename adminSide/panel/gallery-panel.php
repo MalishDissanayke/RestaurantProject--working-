@@ -56,15 +56,7 @@ require_once '../config.php'; // Include database configuration
                 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['image'])) {
                     $file = $_FILES['image'];
                     $fileName = basename($file['name']);
-                    $filePath = '../uploads/' . $fileName; // Corrected path
-
-                    // Debugging: Output the file path
-                    error_log("File path for upload: " . realpath($filePath));
-
-                    // Make sure the uploads directory exists
-                    if (!file_exists(dirname($filePath))) {
-                        mkdir(dirname($filePath), 0755, true); // Create the directory if it does not exist
-                    }
+                    $filePath = '../uploads/' . $fileName;
 
                     // Move file to uploads directory
                     if (move_uploaded_file($file['tmp_name'], $filePath)) {
@@ -79,46 +71,45 @@ require_once '../config.php'; // Include database configuration
                             }
                         }
                     } else {
-                        echo '<div class="alert alert-danger">Failed to upload file. Check if the directory exists and has the correct permissions.</div>';
+                        echo '<div class="alert alert-danger">Failed to upload file.</div>';
                     }
                 }
 
                 // Handle image deletion
-                if (isset($_GET['delete'])) {
-                    $id = intval($_GET['delete']);
-                    $sql = "SELECT image_path FROM gallery_images WHERE id = ?";
-                    if ($stmt = mysqli_prepare($link, $sql)) {
-                        mysqli_stmt_bind_param($stmt, 'i', $id);
-                        mysqli_stmt_execute($stmt);
-                        mysqli_stmt_bind_result($stmt, $imagePath);
-                        mysqli_stmt_fetch($stmt);
+               // Handle image deletion
+               if (isset($_GET['delete'])) {
+                   $id = intval($_GET['delete']);
+                   $sql = "SELECT image_path FROM gallery_images WHERE id = ?";
+                   if ($stmt = mysqli_prepare($link, $sql)) {
+                       mysqli_stmt_bind_param($stmt, 'i', $id);
+                       mysqli_stmt_execute($stmt);
+                       mysqli_stmt_bind_result($stmt, $imagePath);
+                       mysqli_stmt_fetch($stmt);
 
-                        // Log the path for debugging
-                        error_log("Attempting to delete file: " . $imagePath);
+                       // Log the path for debugging
+                       error_log("Attempting to delete file: " . $imagePath);
 
-                        // Correct path for deletion
-                        $fullFilePath = realpath($imagePath);
+                       // Check if the file exists before attempting to delete
+                       if (file_exists($imagePath)) {
+                           if (unlink($imagePath)) {
+                               $sql = "DELETE FROM gallery_images WHERE id = ?";
+                               if ($stmt = mysqli_prepare($link, $sql)) {
+                                   mysqli_stmt_bind_param($stmt, 'i', $id);
+                                   if (mysqli_stmt_execute($stmt)) {
+                                       echo '<div class="alert alert-success">Image deleted successfully.</div>';
+                                   } else {
+                                       echo '<div class="alert alert-danger">Error: ' . mysqli_error($link) . '</div>';
+                                   }
+                               }
+                           } else {
+                               echo '<div class="alert alert-danger">Failed to delete file. File might not exist.</div>';
+                           }
+                       } else {
+                           echo '<div class="alert alert-danger">File not found: ' . $imagePath . '</div>';
+                       }
+                   }
+               }
 
-                        // Check if the file exists before attempting to delete
-                        if ($fullFilePath && file_exists($fullFilePath) && !is_dir($fullFilePath)) {
-                            if (unlink($fullFilePath)) {
-                                $sql = "DELETE FROM gallery_images WHERE id = ?";
-                                if ($stmt = mysqli_prepare($link, $sql)) {
-                                    mysqli_stmt_bind_param($stmt, 'i', $id);
-                                    if (mysqli_stmt_execute($stmt)) {
-                                        echo '<div class="alert alert-success">Image deleted successfully.</div>';
-                                    } else {
-                                        echo '<div class="alert alert-danger">Error: ' . mysqli_error($link) . '</div>';
-                                    }
-                                }
-                            } else {
-                                echo '<div class="alert alert-danger">Failed to delete file. File might not exist or is a directory.</div>';
-                            }
-                        } else {
-                            echo '<div class="alert alert-danger">File not found or is a directory: ' . $imagePath . '</div>';
-                        }
-                    }
-                }
 
                 // Fetch and display images
                 $sql = "SELECT id, image_name, image_path FROM gallery_images";
@@ -126,11 +117,8 @@ require_once '../config.php'; // Include database configuration
                     if (mysqli_num_rows($result) > 0) {
                         echo '<div class="gallery">';
                         while ($row = mysqli_fetch_assoc($result)) {
-                            // Construct the path for displaying images
-                            $imagePath = 'http://localhost/RestaurantProject/adminSide/uploads/' . htmlspecialchars($row['image_name']);
-
                             echo '<div class="gallery-item">';
-                            echo '<img src="' . $imagePath . '" alt="' . htmlspecialchars($row['image_name']) . '">';
+                            echo '<img src="' . $row['image_path'] . '" alt="' . htmlspecialchars($row['image_name']) . '">';
                             echo '<a href="gallery-panel.php?delete=' . $row['id'] . '" class="delete-button" onclick="return confirm(\'Are you sure you want to delete this image?\')">X</a>';
                             echo '</div>';
                         }

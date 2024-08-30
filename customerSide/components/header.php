@@ -22,10 +22,10 @@ if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true){
     echo 'Welcome, ' . $_SESSION["member_name"] . '!';
     echo '<a href="../customerProfile/profile.php">Profile</a>';
     echo '</div>';
-    
+
 }
 
-session_start();
+// session_start();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -118,27 +118,27 @@ $result = mysqli_query($link, $query);
     if ($result) {
         // Fetch the member's information
         $row = mysqli_fetch_assoc($result);
-        
+
         if ($row) {
             $member_name = $row['member_name'];
             $points = $row['points'];
-            
+
             // Calculate VIP status
             $vip_status = ($points >= 1000) ? 'VIP' : 'Regular';
-            
+
             // Define the VIP tooltip text
             $vip_tooltip = ($vip_status === 'Regular') ? ($points < 1000 ? (1000 - $points) . ' points to VIP ' : 'You are eligible for VIP') : '';
-            
+
             // Output the member's information
             echo "<p class='logout-link' style='font-size:1.3em; margin-left:15px; padding:5px; color:white; '>$member_name</p>";
             echo "<p class='logout-link' style='font-size:1.3em; margin-left:15px;padding:5px;color:white; '>$points Points </p>";
             echo "<p class='logout-link' style='font-size:1.3em; margin-left:15px;padding:5px; color:white; '>$vip_status";
-            
+
             // Add the tooltip only for Regular status
             if ($vip_status === 'Regular') {
                 echo " <span class='tooltip'>$vip_tooltip</span>";
             }
-            
+
             echo "</p>";
         } else {
             echo "Member not found.";

@@ -31,28 +31,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['image'])) {
     }
 }
 
-}
-
+// Handle image deletion
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
     $sql = "SELECT image_path FROM gallery_images WHERE id = ?";
-    $stmt = mysqli_prepare($link, $sql);
-    mysqli_stmt_bind_param($stmt, 'i', $id);
-    mysqli_stmt_execute($stmt);
-    mysqli_stmt_bind_result($stmt, $imagePath);
-    mysqli_stmt_fetch($stmt);
-
-    if (unlink($imagePath)) {
-        $sql = "DELETE FROM gallery_images WHERE id = ?";
-        $stmt = mysqli_prepare($link, $sql);
+    if ($stmt = mysqli_prepare($link, $sql)) {
         mysqli_stmt_bind_param($stmt, 'i', $id);
-        if (mysqli_stmt_execute($stmt)) {
-            echo "Image deleted successfully.";
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_bind_result($stmt, $imagePath);
+        mysqli_stmt_fetch($stmt);
+
+        // Remove the file from the server
+        if (file_exists($imagePath) && !is_dir($imagePath)) {
+            if (unlink($imagePath)) {
+                // Remove the record from the database
+                $sql = "DELETE FROM gallery_images WHERE id = ?";
+                if ($stmt = mysqli_prepare($link, $sql)) {
+                    mysqli_stmt_bind_param($stmt, 'i', $id);
+                    if (mysqli_stmt_execute($stmt)) {
+                        echo '<div class="alert alert-success">Image deleted successfully.</div>';
+                    } else {
+                        echo '<div class="alert alert-danger">Error: ' . mysqli_error($link) . '</div>';
+                    }
+                }
+            } else {
+                echo '<div class="alert alert-danger">Failed to delete file.</div>';
+            }
         } else {
-            echo "Error: " . mysqli_error($link);
+            echo '<div class="alert alert-danger">File not found or is a directory: ' . htmlspecialchars($imagePath) . '</div>';
         }
-    } else {
-        echo "Failed to delete file.";
     }
 }
 
@@ -71,7 +78,7 @@ mysqli_close($link);
     <h1>Gallery CRUD</h1>
 
     <!-- Image Upload Form -->
-    <form action="GalleryCrud.php" method="post" enctype="multipart/form-data">
+    <form action="gallery-panel.php" method="post" enctype="multipart/form-data">
         <label for="image">Upload Image:</label>
         <input type="file" name="image" id="image" required>
         <button type="submit">Upload</button>
@@ -80,25 +87,25 @@ mysqli_close($link);
     <!-- Display Existing Images -->
     <h2>Existing Images</h2>
     <?php
-   // Fetch and display images
-   $sql = "SELECT id, image_name, image_path FROM gallery_images";
-   if ($result = mysqli_query($link, $sql)) {
-       if (mysqli_num_rows($result) > 0) {
-           echo '<div class="gallery">';
-           while ($row = mysqli_fetch_assoc($result)) {
-               echo '<div class="gallery-item">';
-               echo '<img src="' . $row['image_path'] . '" alt="' . htmlspecialchars($row['image_name']) . '">';
-               echo '<a href="gallery-panel.php?delete=' . $row['id'] . '" class="delete-button" onclick="return confirm(\'Are you sure you want to delete this image?\')">X</a>';
-               echo '</div>';
-           }
-           echo '</div>';
-       } else {
-           echo '<div class="alert alert-danger"><em>No images found.</em></div>';
-       }
-   } else {
-       echo '<div class="alert alert-danger">Oops! Something went wrong. Please try again later.</div>';
-   }
-
+    // Fetch and display images
+    $sql = "SELECT id, image_name, image_path FROM gallery_images";
+    if ($result = mysqli_query($link, $sql)) {
+        if (mysqli_num_rows($result) > 0) {
+            echo '<div class="gallery">';
+            while ($row = mysqli_fetch_assoc($result)) {
+                $imagePath = 'http://localhost/RestaurantProject/adminSide/uploads/' . htmlspecialchars($row['image_name']);
+                echo '<div class="gallery-item">';
+                echo '<img src="' . $imagePath . '" alt="' . htmlspecialchars($row['image_name']) . '">';
+                echo '<a href="gallery-panel.php?delete=' . $row['id'] . '" class="delete-button" onclick="return confirm(\'Are you sure you want to delete this image?\')">X</a>';
+                echo '</div>';
+            }
+            echo '</div>';
+        } else {
+            echo '<div class="alert alert-danger"><em>No images found.</em></div>';
+        }
+    } else {
+        echo '<div class="alert alert-danger">Oops! Something went wrong. Please try again later.</div>';
+    }
     ?>
 </body>
 </html>

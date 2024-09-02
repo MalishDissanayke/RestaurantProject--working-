@@ -65,6 +65,10 @@
                                 <div class="sb-nav-link-icon"><i class="fas fa-kitchen-set"></i></div>
                                 Kitchen
                             </a>
+                            <a class="nav-link" href="../panel/offers-panel.php">  <!-- New Offers Menu Item -->
+                                <div class="sb-nav-link-icon"><i class="fas fa-tags"></i></div>
+                                Offers
+                            </a>
                             <div class="sb-sidenav-menu-heading">Report & Analytics</div>
                             <a class="nav-link" href="../panel/sales-panel.php">
                                 <div class="sb-nav-link-icon"><i class="fas fa-fire"></i></div>
